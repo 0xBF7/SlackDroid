@@ -1,0 +1,42 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# modified by ari ade supriyatna
+echo "This setup script will attempt to set Slackware Linux up in your Termux environment."
+echo
+echo "When successfully completed, you will be at the bash prompt in Slackware Linux in Termux."
+
+pkg up
+pkg install proot tar wget curl
+
+mkdir -p $HOME/slackware
+cd $HOME/slackware
+echo "Downloading slackware-image."     
+
+#install sesuai versi hp arm milikmu, dan versi os bebas
+#http://slackware.uk/slackwarearm/slackwarearm-devtools/minirootfs/roots/
+
+#SlackwareARM Current
+wget -c https://slackware.uk/slackwarearm/slackwarearm-devtools/minirootfs/roots/slackarm-14.0-miniroot_15Jul13.tar.xz
+proot --link2symlink tar -xvf slackarm-14.0-miniroot_15Jul13.tar.xz --exclude=dev||:
+
+echo "Configuring Slackware"        
+echo
+mv $HOME/slackware/etc/resolv.conf $HOME/slackware/etc/resolv.conf.orig                                                    
+cat <<EOF > $HOME/slackware/etc/resolv.conf
+nameserver 1.1.1.1
+nameserver 9.9.9.9   
+nameserver 8.8.8.8                                  
+EOF
+
+bin=startSlackware
+echo "Writing launch script."
+cat > $bin <<- EOM
+#!/data/data/com.termux/files/usr/bin/bash
+unset LD_PRELOAD
+proot --link2symlink -0 -r ~/slackware -b /dev/ -b /sys/ -b /proc/ -b /storage/ -b $HOME -w $HOME /bin/env -i HOME=/root TERM="$TERM" PS1='[termux@slackware \W]\$ ' LANG=$LANG PATH=/bin:/usr/bin:/sbin:/usr/sbin /bin/bash --login
+EOM
+
+echo "Making $bin executable."
+chmod 700 $bin
+
+echo "Launch Slackware Linux in Termux with ./slackware/$bin"
+$HOME/slackware/$bin
